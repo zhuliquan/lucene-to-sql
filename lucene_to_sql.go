@@ -161,14 +161,16 @@ func (c *SqlConvertor) termQueryToSql(termQuery *lucene_parser.FieldQuery, rever
 	case value.GetTermType()&term.REGEXP_TERM_TYPE == term.REGEXP_TERM_TYPE:
 		sql, err = c.regexpQueryToSql(field, tType, termQuery.Term)
 	case value.GetTermType()&term.RANGE_TERM_TYPE == term.RANGE_TERM_TYPE:
+		sql, err = c.rangeQueryToSql(field, tType, termQuery.Term)
 	case value.GetTermType()&term.WILDCARD_TERM_TYPE == term.WILDCARD_TERM_TYPE:
 		sql, err = c.wildcardQueryToSql(field, tType, termQuery.Term)
 	case value.GetTermType()&term.SINGLE_TERM_TYPE == term.SINGLE_TERM_TYPE:
 		//
 	case value.GetTermType()&term.PHRASE_TERM_TYPE == term.PHRASE_TERM_TYPE:
 		//
-
 	case value.GetTermType()&term.FUZZY_TERM_TYPE == term.FUZZY_TERM_TYPE:
+		err = errors.New("not support fuzzy query")
+	case value.GetTermType()&term.GROUP_TERM_TYPE == term.GROUP_TERM_TYPE:
 		//
 	}
 	if err != nil {
@@ -180,21 +182,30 @@ func (c *SqlConvertor) termQueryToSql(termQuery *lucene_parser.FieldQuery, rever
 	return sql, nil
 }
 
-func (c *SqlConvertor) rangeQueryToSql(field string, value *term.Term) (string, error) {
+func (c *SqlConvertor) rangeQueryToSql(
+	field string, _ *esMapping.Property, value *term.Term,
+) (string, error) {
 	sql := NewSQL()
 	bnd := value.GetBound()
-	lVal := bnd.LeftValue
-	// rVal := bnd.RightValue
 
+	lVal := bnd.LeftValue
 	if !lVal.IsInf(0) {
 		if bnd.LeftInclude {
-			sql.AddAndClause(fmt.Sprintf("%s >= %s", field), true, false)
+			sql.AddAndClause(fmt.Sprintf("%s >= %s", field, lVal.String()), true, false)
 		} else {
-			sql.AddAndClause(fmt.Sprintf("%s > %s", field), true, false)
+			sql.AddAndClause(fmt.Sprintf("%s > %s", field, lVal.String()), true, false)
 		}
 	}
-	return "", nil
 
+	rVal := bnd.RightValue
+	if !rVal.IsInf(0) {
+		if bnd.RightInclude {
+			sql.AddAndClause(fmt.Sprintf("%s <= %s", field, rVal.String()), true, false)
+		} else {
+			sql.AddAndClause(fmt.Sprintf("%s < %s", field, rVal.String()), true, false)
+		}
+	}
+	return sql.String(), nil
 }
 
 func (c *SqlConvertor) regexpQueryToSql(
