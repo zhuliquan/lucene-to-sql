@@ -213,26 +213,48 @@ func (c *SqlConvertor) phraseQueryToSql(
 }
 
 func (c *SqlConvertor) rangeQueryToSql(
-	field string, _ *esMapping.Property, value *term.Term,
+	field string, tType *esMapping.Property, value *term.Term,
 ) (string, error) {
 	sql := NewSQL()
 	bnd := value.GetBound()
 
-	lVal := bnd.LeftValue
-	if !lVal.IsInf(0) {
-		if bnd.LeftInclude {
-			sql.AddAndClause(fmt.Sprintf("%s >= %s", field, lVal.String()), true, false)
+	if lVal := bnd.LeftValue; !lVal.IsInf(0) {
+		if esMapping.CheckNumberType(tType.Type) &&
+			len(bnd.LeftValue.PhraseValue) != 0 {
+			return "", fmt.Errorf("field: %s left bound expect number but got string", field)
+		}
+		var val string
+		if esMapping.CheckStringType(tType.Type) &&
+			len(bnd.LeftValue.SingleValue) != 0 {
+			val = fmt.Sprintf("%q", lVal.String())
 		} else {
-			sql.AddAndClause(fmt.Sprintf("%s > %s", field, lVal.String()), true, false)
+			val = lVal.String()
+		}
+
+		if bnd.LeftInclude {
+			sql.AddAndClause(fmt.Sprintf("%s >= %s", field, val), true, false)
+		} else {
+			sql.AddAndClause(fmt.Sprintf("%s > %s", field, val), true, false)
 		}
 	}
 
-	rVal := bnd.RightValue
-	if !rVal.IsInf(0) {
-		if bnd.RightInclude {
-			sql.AddAndClause(fmt.Sprintf("%s <= %s", field, rVal.String()), true, false)
+	if rVal := bnd.RightValue; !rVal.IsInf(0) {
+		if esMapping.CheckNumberType(tType.Type) &&
+			len(bnd.RightValue.PhraseValue) != 0 {
+			return "", fmt.Errorf("field: %s right bound expect number but got string", field)
+		}
+		var val string
+		if esMapping.CheckStringType(tType.Type) &&
+			len(bnd.RightValue.SingleValue) != 0 {
+			val = fmt.Sprintf("%q", lVal.String())
 		} else {
-			sql.AddAndClause(fmt.Sprintf("%s < %s", field, rVal.String()), true, false)
+			val = lVal.String()
+		}
+
+		if bnd.RightInclude {
+			sql.AddAndClause(fmt.Sprintf("%s <= %s", field, val), true, false)
+		} else {
+			sql.AddAndClause(fmt.Sprintf("%s < %s", field, val), true, false)
 		}
 	}
 	return sql.String(), nil
