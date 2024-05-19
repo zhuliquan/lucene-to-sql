@@ -64,6 +64,12 @@ func WithSchema(mappings *esMapping.PropertyMapping) func(s *SqlConvertor) {
 	}
 }
 
+func WithSQLStyle(sqlStyle SQL_STYLE) func(s *SqlConvertor) {
+	return func(s *SqlConvertor) {
+		s.sqlStyle = sqlStyle
+	}
+}
+
 func NewSqlConvertor(options ...func(s *SqlConvertor)) *SqlConvertor {
 	s := &SqlConvertor{tokenizers: make(map[string]Tokenizer)}
 	for _, opt := range options {
@@ -209,11 +215,11 @@ func (c *SqlConvertor) singleQueryToSql(
 		if haveTk {
 			sql := NewSQL()
 			for _, term := range tokenizer.Split(value.String()) {
-				sql.AddORClause(fmt.Sprintf("%s like '%%s%'", term), true)
+				sql.AddORClause(fmt.Sprintf("%s like '%s%s%s'", field, "%", term, "%"), true)
 			}
 			return sql.String(), nil
 		} else {
-			return fmt.Sprintf("%s like '%%s%'", value.String()), nil
+			return fmt.Sprintf("%s like '%s%s%s'", field, "%", value.String(), "%"), nil
 		}
 	}
 	return "", nil
@@ -222,7 +228,7 @@ func (c *SqlConvertor) singleQueryToSql(
 func (c *SqlConvertor) phraseQueryToSql(
 	field string, _ *esMapping.Property, value *term.Term,
 ) (string, error) {
-	return fmt.Sprintf("%s like '%%s%'", strings.Trim(value.String(), "\"")), nil
+	return fmt.Sprintf("%s like '%s%s%s'", field, "%", strings.Trim(value.String(), "\""), "%"), nil
 }
 
 func (c *SqlConvertor) rangeQueryToSql(
@@ -239,7 +245,7 @@ func (c *SqlConvertor) rangeQueryToSql(
 		var val string
 		if esMapping.CheckStringType(tType.Type) &&
 			len(bnd.LeftValue.SingleValue) != 0 {
-			val = fmt.Sprintf("%q", lVal.String())
+			val = fmt.Sprintf("'%s'", lVal.String())
 		} else {
 			val = lVal.String()
 		}
@@ -259,9 +265,9 @@ func (c *SqlConvertor) rangeQueryToSql(
 		var val string
 		if esMapping.CheckStringType(tType.Type) &&
 			len(bnd.RightValue.SingleValue) != 0 {
-			val = fmt.Sprintf("%q", lVal.String())
+			val = fmt.Sprintf("'%s'", rVal.String())
 		} else {
-			val = lVal.String()
+			val = rVal.String()
 		}
 
 		if bnd.RightInclude {
@@ -283,10 +289,10 @@ func (c *SqlConvertor) regexpQueryToSql(
 		case Oracle:
 			return fmt.Sprintf("regexp_like(%s, '%s')", field, value.String()), nil
 		case ClickHouse:
-			return fmt.Sprintf("match(%s, '%q')", field, value.String()), nil
+			return fmt.Sprintf("match(%s, '%s')", field, value.String()), nil
 		default:
 			// sql99 and postgresql
-			return fmt.Sprintf("%s SIMILAR TO %q", field, value.String()), nil
+			return fmt.Sprintf("%s SIMILAR TO '%s'", field, value.String()), nil
 		}
 	} else {
 		return "", fmt.Errorf("expect field: %s string type, but: %s", field, tType.Type)
