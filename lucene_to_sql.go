@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	// "strings"
-
 	esMapping "github.com/zhuliquan/es-mapping"
 	"github.com/zhuliquan/lucene_parser"
 	"github.com/zhuliquan/lucene_parser/term"
@@ -201,15 +199,30 @@ func (c *SqlConvertor) termQueryToSql(termQuery *lucene_parser.FieldQuery, rever
 }
 
 func (c *SqlConvertor) singleQueryToSql(
-	field string, _ *esMapping.Property, value *term.Term,
+	field string, tType *esMapping.Property, value *term.Term,
 ) (string, error) {
+	switch {
+	case esMapping.CheckNumberType(tType.Type):
+		return fmt.Sprintf("%s = %s", field, value.String()), nil
+	case esMapping.CheckStringType(tType.Type):
+		tokenizer, haveTk := c.tokenizers[field]
+		if haveTk {
+			sql := NewSQL()
+			for _, term := range tokenizer.Split(value.String()) {
+				sql.AddORClause(fmt.Sprintf("%s like '%%s%'", term), true)
+			}
+			return sql.String(), nil
+		} else {
+			return fmt.Sprintf("%s like '%%s%'", value.String()), nil
+		}
+	}
 	return "", nil
 }
 
 func (c *SqlConvertor) phraseQueryToSql(
 	field string, _ *esMapping.Property, value *term.Term,
 ) (string, error) {
-	return "", nil
+	return fmt.Sprintf("%s like '%%s%'", strings.Trim(value.String(), "\"")), nil
 }
 
 func (c *SqlConvertor) rangeQueryToSql(
@@ -266,11 +279,11 @@ func (c *SqlConvertor) regexpQueryToSql(
 	if esMapping.CheckStringType(tType.Type) {
 		switch c.sqlStyle {
 		case SQLite, MySQL:
-			return fmt.Sprintf("%s REGEXP %q", field, value.String()), nil
+			return fmt.Sprintf("%s REGEXP '%s'", field, value.String()), nil
 		case Oracle:
-			return fmt.Sprintf("regexp_like(%s, %q)", field, value.String()), nil
+			return fmt.Sprintf("regexp_like(%s, '%s')", field, value.String()), nil
 		case ClickHouse:
-			return fmt.Sprintf("match(%s, %q)", field, value.String()), nil
+			return fmt.Sprintf("match(%s, '%q')", field, value.String()), nil
 		default:
 			// sql99 and postgresql
 			return fmt.Sprintf("%s SIMILAR TO %q", field, value.String()), nil
@@ -286,7 +299,7 @@ func (c *SqlConvertor) wildcardQueryToSql(
 	if esMapping.CheckStringType(tType.Type) {
 		switch c.sqlStyle {
 		case SQLite:
-			return fmt.Sprintf("%s GLOB %q", field, value.String()), nil
+			return fmt.Sprintf("%s GLOB '%s'", field, value.String()), nil
 		default:
 			tks := []string{value.FuzzyTerm.SingleTerm.Begin}
 			tks = append(tks, value.FuzzyTerm.SingleTerm.Chars...)
@@ -301,7 +314,7 @@ func (c *SqlConvertor) wildcardQueryToSql(
 					pattern = append(pattern, tk)
 				}
 			}
-			return fmt.Sprintf("%s LIKE %q", field, strings.Join(pattern, "")), nil
+			return fmt.Sprintf("%s LIKE '%s'", field, strings.Join(pattern, "")), nil
 		}
 	} else {
 		return "", fmt.Errorf("expect field: %s string type, but: %s", field, tType.Type)
@@ -311,17 +324,14 @@ func (c *SqlConvertor) wildcardQueryToSql(
 func (c *SqlConvertor) fuzzyQueryToSql(
 	field string, tType *esMapping.Property, value *term.Term,
 ) (string, error) {
+	// Levenshtein Distance
+	fuzziness := int(value.FuzzyTerm.Fuzzy().Float())
 	if esMapping.CheckStringType(tType.Type) {
 		switch c.sqlStyle {
-		case SQLite:
-			//
-			return "", nil
 		case PostgreSQL:
-			//
-			return "", nil
+			return fmt.Sprintf("levenshtein(%s, '%s') <= %d", field, value.String(), fuzziness), nil
 		case ClickHouse:
-			//
-			return "", nil
+			return fmt.Sprintf("multiFuzzyMatchAny(%s, %d, '%s')", field, fuzziness, value.String()), nil
 		default:
 			return "", fmt.Errorf("%s is not support fuzzy query", c.sqlStyle)
 		}
