@@ -59,7 +59,7 @@ func WithTokenizer(field string, tokenizer Tokenizer) func(s *SqlConvertor) {
 
 func WithSchema(mappings *esMapping.PropertyMapping) func(s *SqlConvertor) {
 	return func(s *SqlConvertor) {
-		s.mappings = &esMapping.PropertyMapping{}
+		s.mappings = mappings
 
 	}
 }
@@ -242,18 +242,11 @@ func (c *SqlConvertor) rangeQueryToSql(
 			len(bnd.LeftValue.PhraseValue) != 0 {
 			return "", fmt.Errorf("field: %s left bound expect number but got string", field)
 		}
-		var val string
-		if esMapping.CheckStringType(tType.Type) &&
-			len(bnd.LeftValue.SingleValue) != 0 {
-			val = fmt.Sprintf("'%s'", lVal.String())
-		} else {
-			val = lVal.String()
-		}
-
+		var val = getSqlBound(lVal, tType)
 		if bnd.LeftInclude {
-			sql.AddAndClause(fmt.Sprintf("%s >= %s", field, val), true, false)
+			sql.AddAndClause(fmt.Sprintf("%s >= %s", field, val), false, false)
 		} else {
-			sql.AddAndClause(fmt.Sprintf("%s > %s", field, val), true, false)
+			sql.AddAndClause(fmt.Sprintf("%s > %s", field, val), false, false)
 		}
 	}
 
@@ -262,21 +255,30 @@ func (c *SqlConvertor) rangeQueryToSql(
 			len(bnd.RightValue.PhraseValue) != 0 {
 			return "", fmt.Errorf("field: %s right bound expect number but got string", field)
 		}
-		var val string
-		if esMapping.CheckStringType(tType.Type) &&
-			len(bnd.RightValue.SingleValue) != 0 {
-			val = fmt.Sprintf("'%s'", rVal.String())
-		} else {
-			val = rVal.String()
-		}
-
+		var val = getSqlBound(rVal, tType)
 		if bnd.RightInclude {
-			sql.AddAndClause(fmt.Sprintf("%s <= %s", field, val), true, false)
+			sql.AddAndClause(fmt.Sprintf("%s <= %s", field, val), !bnd.LeftValue.IsInf(0), false)
 		} else {
-			sql.AddAndClause(fmt.Sprintf("%s < %s", field, val), true, false)
+			sql.AddAndClause(fmt.Sprintf("%s < %s", field, val), !bnd.LeftValue.IsInf(0), false)
 		}
 	}
 	return sql.String(), nil
+}
+
+func getSqlBound(rVal *term.RangeValue, tType *esMapping.Property) string {
+	var val string
+	if esMapping.CheckStringType(tType.Type) {
+		if len(rVal.SingleValue) != 0 {
+			val = rVal.String()
+		} else {
+			val = strings.Trim(rVal.String(), "\"")
+		}
+		val = strings.ReplaceAll(val, "'", "''")
+		val = fmt.Sprintf("'%s'", val)
+	} else {
+		val = rVal.String()
+	}
+	return val
 }
 
 func (c *SqlConvertor) regexpQueryToSql(
