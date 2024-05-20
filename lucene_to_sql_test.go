@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	esMapping "github.com/zhuliquan/es-mapping"
 )
 
 func TestLuceneToSQL(t *testing.T) {
@@ -15,7 +16,17 @@ func TestLuceneToSQL(t *testing.T) {
 		wantErr bool
 	}
 
-	for _, tt := range []testCase{} {
+	for _, tt := range []testCase{
+		{
+			name: "test range left value error number",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(&esMapping.PropertyMapping{}),
+			},
+			query: "",
+			wantSQL: "",
+		},
+	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cvt := NewSqlConvertor(tt.opts...)
 			got, err := cvt.LuceneToSql(tt.query)
