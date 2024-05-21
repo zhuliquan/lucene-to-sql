@@ -347,6 +347,9 @@ func (c *SqlConvertor) fuzzyQueryToSql(
 	}
 	// Levenshtein Distance
 	fuzziness := int(value.FuzzyTerm.Fuzzy().Float())
+	if fuzziness == -1 {
+		fuzziness = 1
+	}
 	if esMapping.CheckStringType(tType.Type) {
 		val := value.String()
 		val = strings.ReplaceAll(val, "'", "''")
