@@ -257,6 +257,81 @@ func TestLuceneToSQL(t *testing.T) {
 			query:   "field:x'x?x*",
 			wantSQL: "field LIKE 'x''x_x%'",
 		},
+		{
+			name: "test phrase fuzzy error",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(PostgreSQL),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:\"xx yy\"~",
+			wantErr: true,
+		},
+		{
+			name: "test text fuzzy error",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(PostgreSQL),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.INTEGER_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:you~",
+			wantErr: true,
+		},
+		{
+			name: "test fuzzy postgresql",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(PostgreSQL),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:you'~",
+			wantSQL: "levenshtein(field, 'you''') <= 1",
+		},
+		{
+			name: "test fuzzy click_house",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(ClickHouse),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:you'~2",
+			wantSQL: "multiFuzzyMatchAny(field, 2, 'you''')",
+		},
+		{
+			name: "test fuzzy other sql",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(MySQL),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:you'~2",
+			wantErr: true,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cvt := NewSqlConvertor(tt.opts...)
