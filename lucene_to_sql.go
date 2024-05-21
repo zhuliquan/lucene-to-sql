@@ -351,7 +351,7 @@ func (c *SqlConvertor) fuzzyQueryToSql(
 		fuzziness = 1
 	}
 	if esMapping.CheckStringType(tType.Type) {
-		val := value.String()
+		val := value.FuzzyTerm.SingleTerm.String()
 		val = strings.ReplaceAll(val, "'", "''")
 		switch c.sqlStyle {
 		case PostgreSQL:
