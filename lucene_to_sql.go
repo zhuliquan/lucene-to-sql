@@ -211,15 +211,20 @@ func (c *SqlConvertor) singleQueryToSql(
 	case esMapping.CheckNumberType(tType.Type):
 		return fmt.Sprintf("%s = %s", field, value.String()), nil
 	case esMapping.CheckStringType(tType.Type):
-		tokenizer, haveTk := c.tokenizers[field]
-		if haveTk {
-			sql := NewSQL()
-			for _, term := range tokenizer.Split(value.String()) {
-				sql.AddORClause(fmt.Sprintf("%s like '%s%s%s'", field, "%", term, "%"), true)
+		switch tType.Type {
+		case esMapping.KEYWORD_FIELD_TYPE, esMapping.CONSTANT_KEYWORD_FIELD_TYPE:
+			return fmt.Sprintf("%s = %s", field, value.String()), nil
+		default:
+			tokenizer, haveTk := c.tokenizers[field]
+			if haveTk {
+				sql := NewSQL()
+				for _, term := range tokenizer.Split(value.String()) {
+					sql.AddORClause(fmt.Sprintf("%s like '%s%s%s'", field, "%", term, "%"), true)
+				}
+				return sql.String(), nil
+			} else {
+				return fmt.Sprintf("%s like '%s%s%s'", field, "%", value.String(), "%"), nil
 			}
-			return sql.String(), nil
-		} else {
-			return fmt.Sprintf("%s like '%s%s%s'", field, "%", value.String(), "%"), nil
 		}
 	}
 	return "", nil
@@ -285,16 +290,18 @@ func (c *SqlConvertor) regexpQueryToSql(
 	field string, tType *esMapping.Property, value *term.Term,
 ) (string, error) {
 	if esMapping.CheckStringType(tType.Type) {
+		val := strings.Trim(value.String(), "/")
+		val = strings.ReplaceAll(val, "'", "''")
 		switch c.sqlStyle {
 		case SQLite, MySQL:
-			return fmt.Sprintf("%s REGEXP '%s'", field, value.String()), nil
+			return fmt.Sprintf("%s REGEXP '%s'", field, val), nil
 		case Oracle:
-			return fmt.Sprintf("regexp_like(%s, '%s')", field, value.String()), nil
+			return fmt.Sprintf("regexp_like(%s, '%s')", field, val), nil
 		case ClickHouse:
-			return fmt.Sprintf("match(%s, '%s')", field, value.String()), nil
+			return fmt.Sprintf("match(%s, '%s')", field, val), nil
 		default:
 			// sql99 and postgresql
-			return fmt.Sprintf("%s SIMILAR TO '%s'", field, value.String()), nil
+			return fmt.Sprintf("%s SIMILAR TO '%s'", field, val), nil
 		}
 	} else {
 		return "", fmt.Errorf("expect field: %s string type, but: %s", field, tType.Type)
