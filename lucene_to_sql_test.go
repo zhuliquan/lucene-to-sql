@@ -137,6 +137,81 @@ func TestLuceneToSQL(t *testing.T) {
 			query:   "field:[* TO 87}",
 			wantSQL: "field < 87",
 		},
+		{
+			name: "test regexp error",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.INTEGER_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:/xx/",
+			wantErr: true,
+		},
+		{
+			name: "test regexp oracle",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(Oracle),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:/x'x+/",
+			wantSQL: "regexp_like(field, 'x''x+')",
+		},
+		{
+			name: "test regexp ClickHouse",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(ClickHouse),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:/x'x+/",
+			wantSQL: "match(field, 'x''x+')",
+		},
+		{
+			name: "test regexp sqlite,mysql",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:/x'x+/",
+			wantSQL: "field REGEXP 'x''x+'",
+		},
+		{
+			name: "test regexp postgresql",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(PostgreSQL),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:/x'x+/",
+			wantSQL: "field SIMILAR TO 'x''x+'",
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cvt := NewSqlConvertor(tt.opts...)
