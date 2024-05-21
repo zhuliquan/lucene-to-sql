@@ -212,6 +212,51 @@ func TestLuceneToSQL(t *testing.T) {
 			query:   "field:/x'x+/",
 			wantSQL: "field SIMILAR TO 'x''x+'",
 		},
+		{
+			name: "test wildcard error",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(PostgreSQL),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.INTEGER_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:x'*",
+			wantErr: true,
+		},
+		{
+			name: "test wildcard sqlite",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:x'*",
+			wantSQL: "field GLOB 'x''*'",
+		},
+		{
+			name: "test wildcard other sql",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(PostgreSQL),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:x'x?x*",
+			wantSQL: "field LIKE 'x''x_x%'",
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cvt := NewSqlConvertor(tt.opts...)
