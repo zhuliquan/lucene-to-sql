@@ -314,7 +314,8 @@ func (c *SqlConvertor) wildcardQueryToSql(
 	if esMapping.CheckStringType(tType.Type) {
 		switch c.sqlStyle {
 		case SQLite:
-			return fmt.Sprintf("%s GLOB '%s'", field, value.String()), nil
+			val := strings.ReplaceAll(value.String(), "'", "''")
+			return fmt.Sprintf("%s GLOB '%s'", field, val), nil
 		default:
 			tks := []string{value.FuzzyTerm.SingleTerm.Begin}
 			tks = append(tks, value.FuzzyTerm.SingleTerm.Chars...)
@@ -329,7 +330,9 @@ func (c *SqlConvertor) wildcardQueryToSql(
 					pattern = append(pattern, tk)
 				}
 			}
-			return fmt.Sprintf("%s LIKE '%s'", field, strings.Join(pattern, "")), nil
+			val := strings.Join(pattern, "")
+			val = strings.ReplaceAll(val, "'", "''")
+			return fmt.Sprintf("%s LIKE '%s'", field, val), nil
 		}
 	} else {
 		return "", fmt.Errorf("expect field: %s string type, but: %s", field, tType.Type)
