@@ -185,12 +185,12 @@ func (c *SqlConvertor) termQueryToSql(termQuery *lucene_parser.FieldQuery, rever
 		sql, err = c.rangeQueryToSql(field, tType, termQuery.Term)
 	case value.GetTermType()&term.WILDCARD_TERM_TYPE == term.WILDCARD_TERM_TYPE:
 		sql, err = c.wildcardQueryToSql(field, tType, termQuery.Term)
+	case value.GetTermType()&term.FUZZY_TERM_TYPE == term.FUZZY_TERM_TYPE:
+		sql, err = c.fuzzyQueryToSql(field, tType, termQuery.Term)
 	case value.GetTermType()&term.SINGLE_TERM_TYPE == term.SINGLE_TERM_TYPE:
 		sql, err = c.singleQueryToSql(field, tType, termQuery.Term)
 	case value.GetTermType()&term.PHRASE_TERM_TYPE == term.PHRASE_TERM_TYPE:
 		sql, err = c.phraseQueryToSql(field, tType, termQuery.Term)
-	case value.GetTermType()&term.FUZZY_TERM_TYPE == term.FUZZY_TERM_TYPE:
-		sql, err = c.fuzzyQueryToSql(field, tType, termQuery.Term)
 	case value.GetTermType()&term.GROUP_TERM_TYPE == term.GROUP_TERM_TYPE:
 		lucene := lucene_parser.TermGroupToLucene(termQuery.Field, value.TermGroup)
 		sql, err = c.luceneToSql(lucene)
@@ -342,14 +342,20 @@ func (c *SqlConvertor) wildcardQueryToSql(
 func (c *SqlConvertor) fuzzyQueryToSql(
 	field string, tType *esMapping.Property, value *term.Term,
 ) (string, error) {
+	if value.FuzzyTerm.PhraseTerm != nil {
+		return "", fmt.Errorf("don't support phrase fuzzy query")
+	}
 	// Levenshtein Distance
 	fuzziness := int(value.FuzzyTerm.Fuzzy().Float())
 	if esMapping.CheckStringType(tType.Type) {
+		val := value.String()
+		val = strings.ReplaceAll(val, "'", "''")
 		switch c.sqlStyle {
 		case PostgreSQL:
-			return fmt.Sprintf("levenshtein(%s, '%s') <= %d", field, value.String(), fuzziness), nil
+			// CREATE EXTENSION fuzzystrmatch;
+			return fmt.Sprintf("levenshtein(%s, '%s') <= %d", field, val, fuzziness), nil
 		case ClickHouse:
-			return fmt.Sprintf("multiFuzzyMatchAny(%s, %d, '%s')", field, fuzziness, value.String()), nil
+			return fmt.Sprintf("multiFuzzyMatchAny(%s, %d, '%s')", field, fuzziness, val), nil
 		default:
 			return "", fmt.Errorf("%s is not support fuzzy query", c.sqlStyle)
 		}
