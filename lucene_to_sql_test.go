@@ -332,6 +332,66 @@ func TestLuceneToSQL(t *testing.T) {
 			query:   "field:you'~2",
 			wantErr: true,
 		},
+		{
+			name: "test left include and right exclude",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.INTEGER_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:[1 TO 2}",
+			wantSQL: "field >= 1 AND field < 2",
+		},
+		{
+			name: "test left include and right include",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.INTEGER_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:[1 TO 2]",
+			wantSQL: "field >= 1 AND field <= 2",
+		},
+		{
+			name: "test left exclude and right exclude",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.INTEGER_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:{0 TO 2}",
+			wantSQL: "field > 0 AND field < 2",
+		},
+		{
+			name: "test left exclude and right include",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.INTEGER_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:{0 TO 2]",
+			wantSQL: "field > 0 AND field <= 2",
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cvt := NewSqlConvertor(tt.opts...)
