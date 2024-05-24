@@ -35,8 +35,8 @@ github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsT
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/vjeantet/jodaTime v1.0.0 h1:Fq2K9UCsbTFtKbHpe/L7C57XnSgbZ5z+gyGpn7cTE3s=
 github.com/vjeantet/jodaTime v1.0.0/go.mod h1:gA+i8InPfZxL1ToHaDpzi6QT/npjl3uPlcV4cxDNerI=
-github.com/zhuliquan/datemath_parser v0.0.9 h1:9Rn67ByjZhfVWdFgZX7spGsH6uJhE6fQZdTHW/POOAI=
-github.com/zhuliquan/datemath_parser v0.0.9/go.mod h1:GYI3tJu799jNhsHXk7dBcmg/tZvUSfRtlnwgAuZdr7o=
+github.com/zhuliquan/datemath_parser v0.0.10 h1:ru5CHCXLm8+bLlJXVPmhtjEjLC9c53Omfpxt5YlcCdM=
+github.com/zhuliquan/datemath_parser v0.0.10/go.mod h1:GYI3tJu799jNhsHXk7dBcmg/tZvUSfRtlnwgAuZdr7o=
 github.com/zhuliquan/es-mapping v1.1.0 h1:1VcTIfJTKYqI8qWKMhQzVi5bVcn/2Y0SyByZJTYxJ9Y=
 github.com/zhuliquan/es-mapping v1.1.0/go.mod h1:wtrnDIK/1wYfvovbp5HYy7ao3KFxgf678DvKlA1VwFw=
 github.com/zhuliquan/lucene_parser v0.5.1 h1:7lurlOECzOwmb6Jdc+EhXSiOTx7igGRF+PPSo7GX30E=
