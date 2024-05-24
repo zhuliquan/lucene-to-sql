@@ -285,6 +285,8 @@ func (c *SqlConvertor) rangeQueryToSql(
 	return sql.String(), nil
 }
 
+const standardFormat = "yyyy-MM-dd HH:mm:ss"
+
 func getSqlBound(rVal *term.RangeValue, tType *esMapping.Property) (string, error) {
 	var val string
 	if esMapping.CheckStringType(tType.Type) ||
@@ -310,7 +312,7 @@ func getSqlBound(rVal *term.RangeValue, tType *esMapping.Property) (string, erro
 		if err != nil {
 			return "", err
 		}
-		return "'" + jodaTime.Format("yyyy-MM-dd HH:mm:ss", tt) + "'", nil
+		return "'" + jodaTime.Format(standardFormat, tt) + "'", nil
 	} else {
 		val = rVal.String()
 	}
