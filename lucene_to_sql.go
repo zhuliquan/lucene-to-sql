@@ -232,9 +232,23 @@ func (c *SqlConvertor) singleQueryToSql(
 		}
 
 	case esMapping.CheckDateType(tType.Type):
-
+		parser, _ := datemath_parser.NewDateMathParser(
+			datemath_parser.WithFormat(strings.Split(tType.Format, "||")),
+		)
+		var val string
+		if value.FuzzyTerm.SingleTerm != nil {
+			val = value.String()
+		} else {
+			val = strings.Trim(value.String(), "\"")
+		}
+		tt, err := parser.Parse(val)
+		if err != nil {
+			return "", err
+		}
+		return "'" + jodaTime.Format(standardFormat, tt) + "'", nil
+	default:
+		return "", fmt.Errorf("not support type: %s query", tType.Type)
 	}
-	return "", nil
 }
 
 func (c *SqlConvertor) phraseQueryToSql(
