@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/vjeantet/jodaTime"
+	"github.com/zhuliquan/datemath_parser"
 	esMapping "github.com/zhuliquan/es-mapping"
 	"github.com/zhuliquan/lucene_parser"
 	"github.com/zhuliquan/lucene_parser/term"
@@ -210,24 +212,27 @@ func (c *SqlConvertor) singleQueryToSql(
 	switch {
 	case esMapping.CheckNumberType(tType.Type):
 		return fmt.Sprintf("%s = %s", field, value.String()), nil
-	case esMapping.CheckStringType(tType.Type):
-		switch tType.Type {
-		case esMapping.KEYWORD_FIELD_TYPE, esMapping.CONSTANT_KEYWORD_FIELD_TYPE:
-			return fmt.Sprintf("%s = %s", field, value.String()), nil
-		default:
-			tokenizer, haveTk := c.tokenizers[field]
-			if haveTk {
-				sql := NewSQL()
-				for _, term := range tokenizer.Split(value.String()) {
-					val := strings.ReplaceAll(term, "'", "''")
-					sql.AddORClause(fmt.Sprintf("%s like '%s%s%s'", field, "%", val, "%"), true)
-				}
-				return sql.String(), nil
-			} else {
-				val := strings.ReplaceAll(value.String(), "''", "'")
-				return fmt.Sprintf("%s like '%s%s%s'", field, "%", val, "%"), nil
+	case esMapping.CheckKeywordType(tType.Type) ||
+		esMapping.CheckIPType(tType.Type) ||
+		esMapping.CheckVersionType(tType.Type):
+		val := strings.ReplaceAll(value.String(), "'", "''")
+		return fmt.Sprintf("%s = %s%s%s", field, "%", val, "%"), nil
+	case esMapping.CheckTextType(tType.Type):
+		tokenizer, haveTk := c.tokenizers[field]
+		if haveTk {
+			sql := NewSQL()
+			for _, term := range tokenizer.Split(value.String()) {
+				val := strings.ReplaceAll(term, "'", "''")
+				sql.AddORClause(fmt.Sprintf("%s like '%s%s%s'", field, "%", val, "%"), true)
 			}
+			return sql.String(), nil
+		} else {
+			val := strings.ReplaceAll(value.String(), "''", "'")
+			return fmt.Sprintf("%s like '%s%s%s'", field, "%", val, "%"), nil
 		}
+
+	case esMapping.CheckDateType(tType.Type):
+
 	}
 	return "", nil
 }
@@ -251,7 +256,10 @@ func (c *SqlConvertor) rangeQueryToSql(
 			len(bnd.LeftValue.PhraseValue) != 0 {
 			return "", fmt.Errorf("field: %s left bound expect number but got string", field)
 		}
-		var val = getSqlBound(lVal, tType)
+		var val, err = getSqlBound(lVal, tType)
+		if err != nil {
+			return "", err
+		}
 		if bnd.LeftInclude {
 			sql.AddAndClause(fmt.Sprintf("%s >= %s", field, val), false, false)
 		} else {
@@ -264,7 +272,10 @@ func (c *SqlConvertor) rangeQueryToSql(
 			len(bnd.RightValue.PhraseValue) != 0 {
 			return "", fmt.Errorf("field: %s right bound expect number but got string", field)
 		}
-		var val = getSqlBound(rVal, tType)
+		var val, err = getSqlBound(rVal, tType)
+		if err != nil {
+			return "", err
+		}
 		if bnd.RightInclude {
 			sql.AddAndClause(fmt.Sprintf("%s <= %s", field, val), !bnd.LeftValue.IsInf(0), false)
 		} else {
@@ -274,9 +285,11 @@ func (c *SqlConvertor) rangeQueryToSql(
 	return sql.String(), nil
 }
 
-func getSqlBound(rVal *term.RangeValue, tType *esMapping.Property) string {
+func getSqlBound(rVal *term.RangeValue, tType *esMapping.Property) (string, error) {
 	var val string
-	if esMapping.CheckStringType(tType.Type) {
+	if esMapping.CheckStringType(tType.Type) ||
+		esMapping.CheckIPType(tType.Type) ||
+		esMapping.CheckVersionType(tType.Type) {
 		if len(rVal.SingleValue) != 0 {
 			val = rVal.String()
 		} else {
@@ -284,10 +297,24 @@ func getSqlBound(rVal *term.RangeValue, tType *esMapping.Property) string {
 		}
 		val = strings.ReplaceAll(val, "'", "''")
 		val = fmt.Sprintf("'%s'", val)
+	} else if esMapping.CheckDateType(tType.Type) {
+		parser, _ := datemath_parser.NewDateMathParser(
+			datemath_parser.WithFormat(strings.Split(tType.Format, "||")),
+		)
+		if len(rVal.SingleValue) != 0 {
+			val = rVal.String()
+		} else {
+			val = strings.Trim(rVal.String(), "\"")
+		}
+		tt, err := parser.Parse(val)
+		if err != nil {
+			return "", err
+		}
+		return "'" + jodaTime.Format("yyyy-MM-dd HH:mm:ss", tt) + "'", nil
 	} else {
 		val = rVal.String()
 	}
-	return val
+	return val, nil
 }
 
 func (c *SqlConvertor) regexpQueryToSql(
