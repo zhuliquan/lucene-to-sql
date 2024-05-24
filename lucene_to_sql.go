@@ -219,11 +219,13 @@ func (c *SqlConvertor) singleQueryToSql(
 			if haveTk {
 				sql := NewSQL()
 				for _, term := range tokenizer.Split(value.String()) {
-					sql.AddORClause(fmt.Sprintf("%s like '%s%s%s'", field, "%", term, "%"), true)
+					val := strings.ReplaceAll(term, "'", "''")
+					sql.AddORClause(fmt.Sprintf("%s like '%s%s%s'", field, "%", val, "%"), true)
 				}
 				return sql.String(), nil
 			} else {
-				return fmt.Sprintf("%s like '%s%s%s'", field, "%", value.String(), "%"), nil
+				val := strings.ReplaceAll(value.String(), "''", "'")
+				return fmt.Sprintf("%s like '%s%s%s'", field, "%", val, "%"), nil
 			}
 		}
 	}
@@ -233,7 +235,9 @@ func (c *SqlConvertor) singleQueryToSql(
 func (c *SqlConvertor) phraseQueryToSql(
 	field string, _ *esMapping.Property, value *term.Term,
 ) (string, error) {
-	return fmt.Sprintf("%s like '%s%s%s'", field, "%", strings.Trim(value.String(), "\""), "%"), nil
+	val := strings.Trim(value.String(), "\"")
+	val = strings.ReplaceAll(val, "'", "''")
+	return fmt.Sprintf("%s like '%s%s%s'", field, "%", val, "%"), nil
 }
 
 func (c *SqlConvertor) rangeQueryToSql(
