@@ -392,6 +392,36 @@ func TestLuceneToSQL(t *testing.T) {
 			query:   "field:{0 TO 2]",
 			wantSQL: "field > 0 AND field <= 2",
 		},
+		{
+			name: "test phrase query",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:\"xx 'you'\"",
+			wantSQL: `field like '%xx ''you''%'`,
+		},
+		{
+			name: "test single number query",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.INTEGER_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:67",
+			wantSQL: `field = 67`,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cvt := NewSqlConvertor(tt.opts...)
