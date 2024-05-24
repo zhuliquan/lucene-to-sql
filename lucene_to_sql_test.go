@@ -1,9 +1,12 @@
 package lucene_to_sql
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vjeantet/jodaTime"
 	esMapping "github.com/zhuliquan/es-mapping"
 )
 
@@ -421,6 +424,70 @@ func TestLuceneToSQL(t *testing.T) {
 			},
 			query:   "field:67",
 			wantSQL: `field = 67`,
+		},
+		{
+			name: "test date range query single term",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type:   esMapping.DATE_FIELD_TYPE,
+							Format: "epoch_second",
+						},
+					},
+				})),
+			},
+			query:   "field:[67 TO *}",
+			wantSQL: fmt.Sprintf(`field >= '%s'`, jodaTime.Format(standardFormat, time.Unix(67, 0).UTC())),
+		},
+		{
+			name: "test date range query left phrase term and error",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type:   esMapping.DATE_FIELD_TYPE,
+							Format: "yyyy-HH-dd'T'HH",
+						},
+					},
+				})),
+			},
+			query:   "field:[\"2001-01-01 09:88:66\" TO *}",
+			wantErr: true,
+		},
+		{
+			name: "test date range query right phrase term and error",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type:   esMapping.DATE_FIELD_TYPE,
+							Format: "yyyy-HH-dd'T'HH",
+						},
+					},
+				})),
+			},
+			query:   "field:{* TO \"2001-01-01 09:88:66\"]",
+			wantErr: true,
+		},
+		{
+			name: "test date range query phrase term and ok",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type:   esMapping.DATE_FIELD_TYPE,
+							Format: "yyyy-HH-dd'T'HH",
+						},
+					},
+				})),
+			},
+			query:   "field:[\"2001-01-01T09\" TO *}",
+			wantSQL: `field >= '2001-01-01 09:00:00'`,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
