@@ -397,7 +397,7 @@ func TestLuceneToSQL(t *testing.T) {
 			wantSQL: "field > 0 AND field <= 2",
 		},
 		{
-			name: "test phrase query",
+			name: "test phrase text query",
 			opts: []func(*SqlConvertor){
 				WithSQLStyle(SQLite),
 				WithSchema(getSchema(&esMapping.Mapping{
@@ -410,6 +410,52 @@ func TestLuceneToSQL(t *testing.T) {
 			},
 			query:   "field:\"xx 'you'\"",
 			wantSQL: `field like '%xx ''you''%'`,
+		},
+		{
+			name: "test phrase keyword query",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.KEYWORD_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:\"xx 'you'\"",
+			wantSQL: `field = 'xx ''you'''`,
+		},
+		{
+			name: "test phrase date query",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type:   esMapping.DATE_FIELD_TYPE,
+							Format: "yyyy-MM-dd HH:mm:ss",
+						},
+					},
+				})),
+			},
+			query:   "field:\"2001-01-01 08:08:08\"",
+			wantSQL: `field = '2001-01-01 08:08:08'`,
+		},
+		{
+			name: "test phrase query error",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type:   esMapping.INTEGER_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:\"898\"",
+			wantErr: true,
 		},
 		{
 			name: "test single number query",
