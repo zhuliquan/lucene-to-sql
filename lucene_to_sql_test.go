@@ -452,6 +452,22 @@ func TestLuceneToSQL(t *testing.T) {
 			wantSQL: `field = '2001-01-01 08:08:08'`,
 		},
 		{
+			name: "test phrase date query error",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type:   esMapping.DATE_FIELD_TYPE,
+							Format: "yyyy-MM-dd",
+						},
+					},
+				})),
+			},
+			query:   "field:\"2001-01-01 08:08:08\"",
+			wantErr: true,
+		},
+		{
 			name: "test phrase query error",
 			opts: []func(*SqlConvertor){
 				WithSQLStyle(SQLite),
@@ -556,7 +572,7 @@ func TestLuceneToSQL(t *testing.T) {
 					},
 				})),
 			},
-			query:   "field:2022-02-03T09:00:88",
+			query:   "field:2022\\-02\\-03",
 			wantErr: true,
 		},
 		{
