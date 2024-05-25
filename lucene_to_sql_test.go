@@ -726,8 +726,8 @@ func TestLuceneToSQL(t *testing.T) {
 					},
 				})),
 			},
-			query:   "field:keyword1 !field:keyword3)",
-			wantSQL: `field like '%keyword1%' AND NOT ( field like '%keyword3%' )`,
+			query:   "field:keyword1 !field:keyword3",
+			wantSQL: `field like '%keyword1%' AND NOT field like '%keyword3%'`,
 		},
 		{
 			name: "test or not query",
