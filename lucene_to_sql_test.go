@@ -715,6 +715,21 @@ func TestLuceneToSQL(t *testing.T) {
 			wantSQL: `field like '%keyword1%' OR field like '%keyword2%' AND NOT ( field like '%keyword3%' )`,
 		},
 		{
+			name: "test and ! query",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:keyword1 !field:keyword3)",
+			wantSQL: `field like '%keyword1%' AND NOT ( field like '%keyword3%' )`,
+		},
+		{
 			name: "test or not query",
 			opts: []func(*SqlConvertor){
 				WithSQLStyle(SQLite),
@@ -772,6 +787,21 @@ func TestLuceneToSQL(t *testing.T) {
 				})),
 			},
 			query:   "field:value AND field1:value2",
+			wantErr: true,
+		},
+		{
+			name: "test parent query error",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "( field1:value2 )",
 			wantErr: true,
 		},
 	} {
