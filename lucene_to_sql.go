@@ -94,19 +94,13 @@ func (c *SqlConvertor) luceneToSql(lucene *lucene_parser.Lucene) (string, error)
 	if err != nil {
 		return "", fmt.Errorf("failed to convert OR clause, err: %w", err)
 	}
-	err = sql.AddORClause(str, false)
-	if err != nil {
-		return "", err
-	}
+	sql.AddORClause(str, false)
 	for _, subQuery := range lucene.OSQuery {
 		str, err = c.orQueryToSql(subQuery.OrQuery)
 		if err != nil {
 			return "", fmt.Errorf("failed to convert OR clause, err: %w", err)
 		}
-		err = sql.AddORClause(str, true)
-		if err != nil {
-			return "", err
-		}
+		sql.AddORClause(str, true)
 	}
 	return sql.String(), nil
 }
@@ -117,10 +111,7 @@ func (c *SqlConvertor) orQueryToSql(orQuery *lucene_parser.OrQuery) (string, err
 	if err != nil {
 		return "", fmt.Errorf("failed to convert AND clause, err: %w", err)
 	}
-	err = sql.AddAndClause(str, false, false)
-	if err != nil {
-		return "", err
-	}
+	sql.AddAndClause(str, false, false)
 	for _, subQuery := range orQuery.AnSQuery {
 		reverse := false
 		if subQuery.NotSymbol != nil {
@@ -130,10 +121,7 @@ func (c *SqlConvertor) orQueryToSql(orQuery *lucene_parser.OrQuery) (string, err
 		if err != nil {
 			return "", fmt.Errorf("failed to convert AND clause, err: %w", err)
 		}
-		err = sql.AddAndClause(str, true, reverse)
-		if err != nil {
-			return "", err
-		}
+		sql.AddAndClause(str, true, reverse)
 	}
 	return sql.String(), nil
 }
@@ -149,10 +137,7 @@ func (c *SqlConvertor) andQueryToSql(andQuery *lucene_parser.AndQuery) (string, 
 		if err != nil {
 			return "", err
 		}
-		err = sql.AddSubClause(str, reverse)
-		if err != nil {
-			return "", fmt.Errorf("failed to convert Sub Lucene, err: %w", err)
-		}
+		sql.AddSubClause(str, reverse)
 		return sql.String(), nil
 	} else {
 		return c.termQueryToSql(andQuery.FieldQuery, reverse)

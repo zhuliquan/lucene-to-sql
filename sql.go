@@ -1,7 +1,6 @@
 package lucene_to_sql
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -15,55 +14,28 @@ func NewSQL() *SQL {
 	}
 }
 
-func (s *SQL) AddORClause(clause string, orSymbol bool) error {
-	var err error
+func (s *SQL) AddORClause(clause string, orSymbol bool) {
 	if orSymbol {
-		_, err = s.buff.WriteString(" OR ")
-		if err != nil {
-			return fmt.Errorf("failed to add OR operator, err: %+v", err)
-		}
+		_, _ = s.buff.WriteString(" OR ")
 	}
-	_, err = s.buff.WriteString(clause)
-	if err != nil {
-		return fmt.Errorf("failed to add OR clause, err: %+v", err)
-	}
-	return nil
+	_, _ = s.buff.WriteString(clause)
 }
 
-func (s *SQL) AddAndClause(clause string, andSymbol, notSymbol bool) error {
-	var err error
+func (s *SQL) AddAndClause(clause string, andSymbol, notSymbol bool) {
 	if andSymbol {
-		_, err = s.buff.WriteString(" AND ")
-		if err != nil {
-			return fmt.Errorf("failed to add AND operator, err: %+v", err)
-		}
+		_, _ = s.buff.WriteString(" AND ")
 	}
 	if notSymbol {
-		_, err = s.buff.WriteString("NOT ")
-		if err != nil {
-			return fmt.Errorf("failed to add NOT operator, err: %+v", err)
-		}
+		_, _ = s.buff.WriteString("NOT ")
 	}
-	_, err = s.buff.WriteString(clause)
-	if err != nil {
-		return fmt.Errorf("failed to add AND clause, err: %+v", err)
-	}
-	return nil
+	_, _ = s.buff.WriteString(clause)
 }
 
-func (s *SQL) AddSubClause(clause string, notSymbol bool) error {
-	var err error
+func (s *SQL) AddSubClause(clause string, notSymbol bool) {
 	if notSymbol {
-		_, err = s.buff.WriteString(" NOT ")
-		if err != nil {
-			return fmt.Errorf("failed to add NOT operator, err: %+v", err)
-		}
+		_, _ = s.buff.WriteString(" NOT ")
 	}
-	_, err = s.buff.WriteString(clause)
-	if err != nil {
-		return fmt.Errorf("failed to add sub clause, err: %+v", err)
-	}
-	return nil
+	_, _ = s.buff.WriteString(clause)
 }
 
 func (s *SQL) String() string {
