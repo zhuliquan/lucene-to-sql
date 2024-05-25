@@ -11,6 +11,15 @@ import (
 	esMapping "github.com/zhuliquan/es-mapping"
 )
 
+func TestSqlStyle(t *testing.T) {
+	assert.Equal(t, "MySQL", MySQL.String())
+	assert.Equal(t, "PostgreSQL", PostgreSQL.String())
+	assert.Equal(t, "SQLite", SQLite.String())
+	assert.Equal(t, "Oracle", Oracle.String())
+	assert.Equal(t, "ClickHouse", ClickHouse.String())
+	assert.Equal(t, "SQL99", Standard.String())
+}
+
 func TestLuceneToSQL(t *testing.T) {
 	type testCase struct {
 		name    string
