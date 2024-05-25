@@ -221,9 +221,9 @@ func (c *SqlConvertor) singleQueryToSql(
 		tokenizer, haveTk := c.tokenizers[field]
 		if haveTk {
 			sql := NewSQL()
-			for _, term := range tokenizer.Split(value.String()) {
+			for i, term := range tokenizer.Split(value.String()) {
 				val := strings.ReplaceAll(term, "'", "''")
-				sql.AddORClause(fmt.Sprintf("%s like '%s%s%s'", field, "%", val, "%"), true)
+				sql.AddORClause(fmt.Sprintf("%s like '%s%s%s'", field, "%", val, "%"), i != 0)
 			}
 			return sql.String(), nil
 		} else {
