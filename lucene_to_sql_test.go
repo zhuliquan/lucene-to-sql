@@ -2,6 +2,7 @@ package lucene_to_sql
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -426,6 +427,99 @@ func TestLuceneToSQL(t *testing.T) {
 			wantSQL: `field = 67`,
 		},
 		{
+			name: "test single keyword query",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.KEYWORD_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:keyword",
+			wantSQL: `field = 'keyword'`,
+		},
+		{
+			name: "test single text query without tokenizer",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:keyword",
+			wantSQL: `field like '%keyword%'`,
+		},
+		{
+			name: "test single text query with tokenizer",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+				WithTokenizer("field", &tokenizer{split: "."}),
+			},
+			query:   "field:keyword1.keyword2",
+			wantSQL: `field like '%keyword1%' OR field like '%keyword2%'`,
+		},
+		{
+			name: "test single date query",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type:   esMapping.DATE_FIELD_TYPE,
+							Format: "yyyy-MM-dd",
+						},
+					},
+				})),
+			},
+			query:   "field:2022-02-03",
+			wantSQL: `field = '2022-02-03 00:00:00'`,
+		},
+		{
+			name: "test single date query error",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type:   esMapping.DATE_FIELD_TYPE,
+							Format: "yyyy-MM-dd'T'HH",
+						},
+					},
+				})),
+			},
+			query:   "field:2022-02-03T09:00:88",
+			wantErr: true,
+		},
+		{
+			name: "test single term error",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.BINARY_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:binary",
+			wantErr: true,
+		},
+		{
 			name: "test date range query single term",
 			opts: []func(*SqlConvertor){
 				WithSQLStyle(SQLite),
@@ -505,4 +599,12 @@ func TestLuceneToSQL(t *testing.T) {
 func getSchema(mapping *esMapping.Mapping) *esMapping.PropertyMapping {
 	res, _ := esMapping.NewPropertyMapping(mapping)
 	return res
+}
+
+type tokenizer struct {
+	split string
+}
+
+func (i *tokenizer) Split(v string) []string {
+	return strings.Split(v, i.split)
 }
