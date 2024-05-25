@@ -1,7 +1,6 @@
 package lucene_to_sql
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -153,10 +152,8 @@ func (c *SqlConvertor) parenToSql(parenQuery *lucene_parser.ParenQuery) (string,
 }
 
 func (c *SqlConvertor) termQueryToSql(termQuery *lucene_parser.FieldQuery, reverse bool) (string, error) {
+	// here field must be none empty, because query can be parsed by LuceneParser correctly.
 	field := termQuery.Field.String()
-	if field == "" {
-		return "", errors.New("field is empty")
-	}
 	value := termQuery.Term
 	typMap, tErr := c.mappings.GetProperty(field)
 	if tErr != nil || len(typMap) == 0 {
