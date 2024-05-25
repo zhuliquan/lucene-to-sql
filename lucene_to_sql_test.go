@@ -670,6 +670,66 @@ func TestLuceneToSQL(t *testing.T) {
 			wantSQL: `( field like '%keyword1%' OR field like '%keyword2%' ) AND field like '%keyword3%' AND NOT ( field like '%keyword4%' )`,
 		},
 		{
+			name: "test group and not query",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:(\"keyword1\" OR \"keyword2\" AND NOT (\"keyword3\" OR keyword4))",
+			wantSQL: `field like '%keyword1%' OR field like '%keyword2%' AND  NOT ( field like '%keyword3%' OR field like '%keyword4%' )`,
+		},
+		{
+			name: "test group or not query",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:(\"keyword1\" OR \"keyword2\" OR NOT (\"keyword3\" AND keyword4))",
+			wantSQL: `field like '%keyword1%' OR field like '%keyword2%' OR  NOT ( field like '%keyword3%' AND field like '%keyword4%' )`,
+		},
+		{
+			name: "test and not query",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:(\"keyword1\" OR \"keyword2\" AND NOT \"keyword3\")",
+			wantSQL: `field like '%keyword1%' OR field like '%keyword2%' AND NOT ( field like '%keyword3%' )`,
+		},
+		{
+			name: "test or not query",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:(\"keyword1\" OR \"keyword2\" OR NOT \"keyword3\")",
+			wantSQL: `field like '%keyword1%' OR field like '%keyword2%' OR NOT ( field like '%keyword3%' )`,
+		},
+		{
 			name: "test lucene parse error",
 			opts: []func(*SqlConvertor){
 				WithSQLStyle(SQLite),
