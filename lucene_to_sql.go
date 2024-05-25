@@ -235,12 +235,7 @@ func (c *SqlConvertor) singleQueryToSql(
 		parser, _ := datemath_parser.NewDateMathParser(
 			datemath_parser.WithFormat(strings.Split(tType.Format, "||")),
 		)
-		var val string
-		if value.FuzzyTerm.SingleTerm != nil {
-			val = value.String()
-		} else {
-			val = strings.Trim(value.String(), "\"")
-		}
+		val := value.String()
 		tt, err := parser.Parse(val)
 		if err != nil {
 			return "", err
@@ -306,22 +301,14 @@ func getSqlBound(rVal *term.RangeValue, tType *esMapping.Property) (string, erro
 	if esMapping.CheckStringType(tType.Type) ||
 		esMapping.CheckIPType(tType.Type) ||
 		esMapping.CheckVersionType(tType.Type) {
-		if len(rVal.SingleValue) != 0 {
-			val = rVal.String()
-		} else {
-			val = strings.Trim(rVal.String(), "\"")
-		}
+		val = getRangeValue(rVal)
 		val = strings.ReplaceAll(val, "'", "''")
 		val = fmt.Sprintf("'%s'", val)
 	} else if esMapping.CheckDateType(tType.Type) {
 		parser, _ := datemath_parser.NewDateMathParser(
 			datemath_parser.WithFormat(strings.Split(tType.Format, "||")),
 		)
-		if len(rVal.SingleValue) != 0 {
-			val = rVal.String()
-		} else {
-			val = strings.Trim(rVal.String(), "\"")
-		}
+		val = getRangeValue(rVal)
 		tt, err := parser.Parse(val)
 		if err != nil {
 			return "", err
@@ -331,6 +318,14 @@ func getSqlBound(rVal *term.RangeValue, tType *esMapping.Property) (string, erro
 		val = rVal.String()
 	}
 	return val, nil
+}
+
+func getRangeValue(rVal *term.RangeValue) string {
+	if len(rVal.SingleValue) != 0 {
+		return rVal.String()
+	} else {
+		return strings.Trim(rVal.String(), "\"")
+	}
 }
 
 func (c *SqlConvertor) regexpQueryToSql(
