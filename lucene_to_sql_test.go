@@ -644,6 +644,51 @@ func TestLuceneToSQL(t *testing.T) {
 			query:   "field:((\"keyword1\" OR \"keyword2\") AND \"keyword3\" AND NOT keyword4)",
 			wantSQL: `( field like '%keyword1%' OR field like '%keyword2%' ) AND field like '%keyword3%' AND NOT ( field like '%keyword4%' )`,
 		},
+		{
+			name: "test lucene parse error",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   ":value",
+			wantErr: true,
+		},
+		{
+			name: "test or query to sql error",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:value OR field1:value2",
+			wantErr: true,
+		},
+		{
+			name: "test and query to sql error",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:value AND field1:value2",
+			wantErr: true,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cvt := NewSqlConvertor(tt.opts...)
