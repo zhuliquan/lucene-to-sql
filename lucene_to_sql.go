@@ -216,7 +216,7 @@ func (c *SqlConvertor) singleQueryToSql(
 		esMapping.CheckIPType(tType.Type) ||
 		esMapping.CheckVersionType(tType.Type):
 		val := strings.ReplaceAll(value.String(), "'", "''")
-		return fmt.Sprintf("%s = %s%s%s", field, "%", val, "%"), nil
+		return fmt.Sprintf("%s = '%s'", field, val), nil
 	case esMapping.CheckTextType(tType.Type):
 		tokenizer, haveTk := c.tokenizers[field]
 		if haveTk {
@@ -240,18 +240,37 @@ func (c *SqlConvertor) singleQueryToSql(
 		if err != nil {
 			return "", err
 		}
-		return "'" + jodaTime.Format(standardFormat, tt) + "'", nil
+		return field + " = '" + jodaTime.Format(standardFormat, tt) + "'", nil
 	default:
-		return "", fmt.Errorf("not support type: %s query", tType.Type)
+		return "", fmt.Errorf("single term not support type: %s query", tType.Type)
 	}
 }
 
 func (c *SqlConvertor) phraseQueryToSql(
-	field string, _ *esMapping.Property, value *term.Term,
+	field string, tType *esMapping.Property, value *term.Term,
 ) (string, error) {
 	val := strings.Trim(value.String(), "\"")
 	val = strings.ReplaceAll(val, "'", "''")
-	return fmt.Sprintf("%s like '%s%s%s'", field, "%", val, "%"), nil
+	switch {
+	case esMapping.CheckKeywordType(tType.Type) ||
+		esMapping.CheckIPType(tType.Type) ||
+		esMapping.CheckVersionType(tType.Type):
+		return fmt.Sprintf("%s = '%s'", field, val), nil
+	case esMapping.CheckTextType(tType.Type):
+		return fmt.Sprintf("%s like '%s%s%s'", field, "%", val, "%"), nil
+	case esMapping.CheckDateType(tType.Type):
+		parser, _ := datemath_parser.NewDateMathParser(
+			datemath_parser.WithFormat(strings.Split(tType.Format, "||")),
+		)
+		tt, err := parser.Parse(val)
+		if err != nil {
+			return "", err
+		}
+		return field + " = '" + jodaTime.Format(standardFormat, tt) + "'", nil
+	default:
+		return "", fmt.Errorf("phrase not support type: %s query", tType.Type)
+	}
+
 }
 
 func (c *SqlConvertor) rangeQueryToSql(
