@@ -39,8 +39,8 @@ github.com/zhuliquan/datemath_parser v0.0.10 h1:ru5CHCXLm8+bLlJXVPmhtjEjLC9c53Om
 github.com/zhuliquan/datemath_parser v0.0.10/go.mod h1:GYI3tJu799jNhsHXk7dBcmg/tZvUSfRtlnwgAuZdr7o=
 github.com/zhuliquan/es-mapping v1.1.0 h1:1VcTIfJTKYqI8qWKMhQzVi5bVcn/2Y0SyByZJTYxJ9Y=
 github.com/zhuliquan/es-mapping v1.1.0/go.mod h1:wtrnDIK/1wYfvovbp5HYy7ao3KFxgf678DvKlA1VwFw=
-github.com/zhuliquan/lucene_parser v0.5.1 h1:7lurlOECzOwmb6Jdc+EhXSiOTx7igGRF+PPSo7GX30E=
-github.com/zhuliquan/lucene_parser v0.5.1/go.mod h1:fhUtDAAhQarNHOiWYVG6LYMzEYz4EcQ+FJXh7/fi6L4=
+github.com/zhuliquan/lucene_parser v0.5.2 h1:o/zniEc2cRC3mJim/Nt7dsS3rM1RGrSuJWB8RvAuTag=
+github.com/zhuliquan/lucene_parser v0.5.2/go.mod h1:fhUtDAAhQarNHOiWYVG6LYMzEYz4EcQ+FJXh7/fi6L4=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
