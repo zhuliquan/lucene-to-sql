@@ -201,7 +201,7 @@ func (c *SqlConvertor) termQueryToSql(termQuery *lucene_parser.FieldQuery, rever
 		return "", err
 	}
 	if reverse {
-		return fmt.Sprintf("NOT (%s)", sql), nil
+		return fmt.Sprintf("NOT ( %s )", sql), nil
 	}
 	return sql, nil
 }
