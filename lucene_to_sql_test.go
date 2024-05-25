@@ -449,7 +449,7 @@ func TestLuceneToSQL(t *testing.T) {
 				WithSchema(getSchema(&esMapping.Mapping{
 					Properties: map[string]*esMapping.Property{
 						"field": {
-							Type:   esMapping.INTEGER_FIELD_TYPE,
+							Type: esMapping.INTEGER_FIELD_TYPE,
 						},
 					},
 				})),
@@ -628,6 +628,21 @@ func TestLuceneToSQL(t *testing.T) {
 			},
 			query:   "field:[\"2001-01-01T09\" TO *}",
 			wantSQL: `field >= '2001-01-01 09:00:00'`,
+		},
+		{
+			name: "test group query",
+			opts: []func(*SqlConvertor){
+				WithSQLStyle(SQLite),
+				WithSchema(getSchema(&esMapping.Mapping{
+					Properties: map[string]*esMapping.Property{
+						"field": {
+							Type: esMapping.TEXT_FIELD_TYPE,
+						},
+					},
+				})),
+			},
+			query:   "field:((\"keyword1\" OR \"keyword2\") AND \"keyword3\" AND NOT keyword4)",
+			wantSQL: `( field like '%keyword1%' OR field like '%keyword2%' ) AND field like '%keyword3%' AND NOT ( field like '%keyword4%' )`,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
